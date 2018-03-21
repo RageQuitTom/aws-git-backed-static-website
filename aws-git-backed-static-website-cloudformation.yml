@@ -26,6 +26,26 @@ Parameters:
     MaxLength: 253
     AllowedPattern: "[a-z0-9]+[-.a-z0-9]*(\\.[a-z][a-z]+)+"
     ConstraintDescription: "Provide a valid domain name using only lowercase letters, numbers, and dash (-)"
+    
+  GitHubUser:
+    Type: String
+    Description: GitHub User
+    Default: RageQuitTom
+  GitHubRepo:
+    Type: String
+    Description: GitHub Repo to pull from. Only the Name. not the URL
+    Default: personal-website
+  GitHubBranch:
+    Type: String
+    Description: GitHub Branch
+    Default: master
+  GitHubToken:
+    NoEcho: true
+    Type: String
+    Description: >-
+      Secret. It might look something like
+      9b189a1654643522561f7b3ebd44a1531a4287af OAuthToken with access to Repo.
+      Go to https://github.com/settings/tokens
 
   # Email address to receive Git activity notifications: you@anotherdomain.com
   # CANNOT be in same domain!
@@ -449,15 +469,17 @@ Resources:
             - Name: SourceAction
               ActionTypeId:
                 Category: Source
-                Owner: AWS
-                Provider: CodeCommit
-                Version: 1
-              Configuration:
-                RepositoryName: !If [NeedsNewGitRepository, !Ref DomainName, !Ref PreExistingGitRepository]
-                BranchName: master
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: '1'
               OutputArtifacts:
                 - Name: SiteSource
-              RunOrder: 1
+              Configuration:
+                Owner: !Ref GitHubUser
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubToken
+              RunOrder: 1              
         - Name: InvokeGenerator
           Actions:
             - Name: InvokeAction
@@ -511,6 +533,12 @@ Mappings:
     eu-west-1:
       S3hostedzoneID: "Z1BKCTXD74EZPE"
       websiteendpoint: "s3-website-eu-west-1.amazonaws.com"
+    eu-west-2:
+      S3hostedzoneID: "Z3GKZC51ZF0DB4"
+      websiteendpoint: "s3-website.eu-west-2.amazonaws.com"
+    eu-west-3:
+      S3hostedzoneID: "Z3R1K369G5AVDG"
+      websiteendpoint: "s3-website.eu-west-3.amazonaws.com"
     sa-east-1:
       S3hostedzoneID: "Z7KQH4QJS55SO"
       websiteendpoint: "s3-website-sa-east-1.amazonaws.com"
