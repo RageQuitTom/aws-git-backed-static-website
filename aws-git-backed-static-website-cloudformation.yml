@@ -117,11 +117,6 @@ Parameters:
     Description: "S3 key containing ZIP of AWS Lambda function (sync to S3)"
     Default: "lambda/aws-lambda-git-backed-static-website.zip"
 
-  PreExistingGitRepository:
-    Description: "Optional Git repository name for pre-existing CodeCommit repository. Leave empty to have CodeCommit Repository created and managed by this stack."
-    Type: String
-    Default: ""
-
   PreExistingHostedZoneDomain:
     Description: "Optional domain name for pre-existing Route 53 hosted zone. Leave empty to have hosted zone created and managed by this stack."
     Type: String
@@ -148,7 +143,6 @@ Parameters:
     Default: ""
 
 Conditions:
-  NeedsNewGitRepository: !Equals [!Ref PreExistingGitRepository, ""]
   NeedsNewHostedZone: !Equals [!Ref PreExistingHostedZoneDomain, ""]
   NeedsNewSiteBucket: !Equals [!Ref PreExistingSiteBucket, ""]
   NeedsNewRedirectBucket: !Equals [!Ref PreExistingRedirectBucket, ""]
@@ -332,20 +326,6 @@ Resources:
       Subscription:
         - Endpoint: !Ref NotificationEmail
           Protocol: email
-
-  # Git repository: example.com
-  GitRepository:
-    Condition: NeedsNewGitRepository
-    Type: "AWS::CodeCommit::Repository"
-    Properties:
-      RepositoryDescription: !Sub "Git repository for ${DomainName}"
-      RepositoryName: !Ref DomainName
-      Triggers:
-        - Name: !Sub "Activity in ${DomainName} Git repository"
-          DestinationArn: !Ref NotificationTopic
-          Events:
-            - all
-    DeletionPolicy: Retain
 
   # IAM info for AWS Lambda functions
   LambdaExecutionRole:
@@ -581,15 +561,15 @@ Outputs:
   CodePipelineArn:
     Description: CodePipeline ARN
     Value: !Ref CodePipeline
-  GitRepositoryName:
-    Description: Git repository name
-    Value: !If [NeedsNewGitRepository, !Ref DomainName, !Ref PreExistingGitRepository]
-  GitCloneUrlHttp:
-    Description: Git https clone endpoint
-    Value: !If [NeedsNewGitRepository, !GetAtt GitRepository.CloneUrlHttp, "N/A"]
-  GitCloneUrlSsh:
-    Description: Git ssh clone endpoint
-    Value: !If [NeedsNewGitRepository, !GetAtt GitRepository.CloneUrlSsh, "N/A"]
+#  GitRepositoryName:
+#    Description: Git repository name
+#    Value: !If [NeedsNewGitRepository, !Ref DomainName, !Ref PreExistingGitRepository]
+#  GitCloneUrlHttp:
+#    Description: Git https clone endpoint
+#    Value: !If [NeedsNewGitRepository, !GetAtt GitRepository.CloneUrlHttp, "N/A"]
+#  GitCloneUrlSsh:
+#    Description: Git ssh clone endpoint
+#    Value: !If [NeedsNewGitRepository, !GetAtt GitRepository.CloneUrlSsh, "N/A"]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -624,7 +604,6 @@ Metadata:
       - Label:
           default: PreExisting Resources To Use (Leave empty for stack to create and manage)
         Parameters:
-          - PreExistingGitRepository
           - PreExistingHostedZoneDomain
           - PreExistingSiteBucket
           - PreExistingRedirectBucket
