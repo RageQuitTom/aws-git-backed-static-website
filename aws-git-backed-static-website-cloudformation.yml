@@ -46,7 +46,12 @@ Parameters:
       Secret. It might look something like
       9b189a1654643522561f7b3ebd44a1531a4287af OAuthToken with access to Repo.
       Go to https://github.com/settings/tokens
-
+      
+  CertificateRequestARN:
+    Type: String
+    Description: ARN of the certificate issued in us-east-1
+    Default: arn:aws:acm:us-east-1:424597288276:certificate/1c59d167-8adc-4d92-856d-9e8a19ea5c02
+    
   # Email address to receive Git activity notifications: you@anotherdomain.com
   # CANNOT be in same domain!
   NotificationEmail:
@@ -68,7 +73,7 @@ Parameters:
 
   PriceClass:
     Description: "Distribution price class. Default is US-only, PriceClass_All is worldwide but more expensive."
-    Default: PriceClass_100
+    Default: PriceClass_200
     AllowedValues:
       - PriceClass_100
       - PriceClass_200
@@ -78,7 +83,7 @@ Parameters:
   GeneratorLambdaFunctionS3Bucket:
     Type: String
     Description: "S3 bucket containing ZIP of AWS Lambda function (static site generator)"
-    Default: "run.alestic.com"
+    Default: "thorseman-websitelambdas"
 
   GeneratorLambdaFunctionS3Key:
     Type: String
@@ -110,7 +115,7 @@ Parameters:
   SyncLambdaFunctionS3Bucket:
     Type: String
     Description: "S3 bucket containing ZIP of AWS Lambda function (sync to S3)"
-    Default: "run.alestic.com"
+    Default: "thorseman-websitelambdas"
 
   SyncLambdaFunctionS3Key:
     Type: String
@@ -120,7 +125,7 @@ Parameters:
   PreExistingHostedZoneDomain:
     Description: "Optional domain name for pre-existing Route 53 hosted zone. Leave empty to have hosted zone created and managed by this stack."
     Type: String
-    Default: ""
+    Default: "tom-horseman.cloud"
 
   PreExistingSiteBucket:
     Description: "Optional name of pre-existing website bucket. Leave empty to have website bucket created and managed by this stack."
@@ -202,14 +207,6 @@ Resources:
         Status: Enabled
     DeletionPolicy: Retain
 
-  # Certificate for HTTPS accesss through CloudFront
-  Certificate:
-    Type: "AWS::CertificateManager::Certificate"
-    Properties:
-      DomainName: !Ref DomainName
-      SubjectAlternativeNames:
-        - !Sub "www.${DomainName}"
-
   # CDN serves S3 content over HTTPS for example.com
   CloudFrontDistribution:
     Type: "AWS::CloudFront::Distribution"
@@ -233,6 +230,11 @@ Resources:
           AllowedMethods:
             - GET
             - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
           Compress: true
           DefaultTTL: !Ref DefaultTTL
           MinTTL: !Ref MinimumTTL
@@ -246,8 +248,9 @@ Resources:
           Bucket: !Join ["", [!If [NeedsNewLogsBucket, !Ref LogsBucket, !Ref PreExistingLogsBucket], ".s3.amazonaws.com"]]
           Prefix: !Sub "logs/cloudfront/${DomainName}/"
           IncludeCookies: false
+        HttpVersion: http2
         ViewerCertificate:
-          AcmCertificateArn: !Ref Certificate
+          AcmCertificateArn: !Ref CertificateRequestARN
           SslSupportMethod: sni-only
 
   # CDN serves S3 content over HTTPS for www.example.com
@@ -272,6 +275,11 @@ Resources:
           AllowedMethods:
             - GET
             - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
           DefaultTTL: !Ref DefaultTTL
           MinTTL: !Ref MinimumTTL
           ForwardedValues:
@@ -284,8 +292,9 @@ Resources:
           Bucket: !Join ["", [!If [NeedsNewLogsBucket, !Ref LogsBucket, !Ref PreExistingLogsBucket], ".s3.amazonaws.com"]]
           Prefix: !Sub "logs/cloudfront/www.${DomainName}/"
           IncludeCookies: false
+        HttpVersion: http2
         ViewerCertificate:
-          AcmCertificateArn: !Ref Certificate
+          AcmCertificateArn: !Ref CertificateRequestARN
           SslSupportMethod: sni-only
 
   # DNS: example.com, www.example.com
