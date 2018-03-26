@@ -261,7 +261,7 @@ Resources:
         Enabled: true
         Aliases:
           - !If [NeedsNewRedirectBucket, !Ref RedirectBucket, !Ref PreExistingRedirectBucket]
-        PriceClass: PriceClass_100
+        PriceClass: !Ref PriceClass
         Origins:
           -
             DomainName: !Join ["", [!If [NeedsNewRedirectBucket, !Ref RedirectBucket, !Ref PreExistingRedirectBucket], ".", !FindInMap [RegionMap, !Ref "AWS::Region", websiteendpoint]]]
